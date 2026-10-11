@@ -1,0 +1,19 @@
+{
+  "domain": "steinel_ble",
+  "name": "Steinel Bluetooth",
+  "bluetooth": [
+    {
+      "service_uuid": "2672b000-875a-47ff-b1ef-f3f6872db917",
+      "connectable": true
+    }
+  ],
+  "codeowners": ["@VasMan"],
+  "config_flow": true,
+  "dependencies": ["bluetooth_adapters"],
+  "documentation": "https://github.com/VasMan/steinelbt",
+  "integration_type": "device",
+  "iot_class": "local_polling",
+  "issue_tracker": "https://github.com/VasMan/steinelbt/issues",
+  "requirements": ["bleak-retry-connector>=3.5.0"],
+  "version": "0.1.0"
+}

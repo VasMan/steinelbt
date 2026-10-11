@@ -1,3 +1,5 @@
+<img src="custom_components/steinel_ble/brand/icon.png" alt="Steinel" width="96" align="right">
+
 # Steinel Bluetooth for Home Assistant
 
 Local control of Steinel lights and sensors that have Bluetooth built in, using the protocol

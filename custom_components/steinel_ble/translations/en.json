@@ -1,0 +1,66 @@
+{
+  "config": {
+    "flow_title": "{name}",
+    "step": {
+      "user": {
+        "title": "Steinel Bluetooth",
+        "description": "Choose the Steinel device to add.",
+        "data": { "address": "Device" }
+      },
+      "auth": {
+        "title": "{name}",
+        "description": "Leave the password empty if none was set in the Smart Remote app.",
+        "data": { "password": "Password", "auth_level": "Log in as" }
+      },
+      "reauth_confirm": {
+        "title": "Steinel password",
+        "description": "The device rejected a command. Enter the password that was set in the Smart Remote app.",
+        "data": { "password": "Password", "auth_level": "Log in as" }
+      }
+    },
+    "error": {
+      "cannot_connect": "Could not connect. Make sure the device is in range and the Smart Remote app is not connected to it.",
+      "invalid_auth": "The device rejected the password."
+    },
+    "abort": {
+      "already_configured": "Device is already configured.",
+      "no_devices_found": "No Steinel Bluetooth devices found.",
+      "reauth_successful": "Password updated."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "data": {
+          "live_values": "Stay connected and receive live sensor values",
+          "on_duration": "Duration of \"on\"",
+          "off_duration": "Duration of \"off\""
+        },
+        "data_description": {
+          "live_values": "Adds motion and brightness entities. Keeps a Bluetooth connection open, so the Smart Remote app cannot connect while Home Assistant is running.",
+          "on_duration": "The light returns to sensor operation after this time. The app uses 14400 s (4 h).",
+          "off_duration": "The light returns to sensor operation after this time. The app uses 14400 s (4 h)."
+        }
+      }
+    }
+  },
+  "selector": {
+    "auth_level": { "options": { "enduser": "End user", "installer": "Installer" } }
+  },
+  "entity": {
+    "select": {
+      "mode": {
+        "name": "Mode",
+        "state": { "sensor": "Sensor", "on": "On", "off": "Off" }
+      }
+    },
+    "number": {
+      "stay_on_time": { "name": "Stay-on time" },
+      "light_level": { "name": "Twilight threshold" }
+    },
+    "sensor": {
+      "brightness": { "name": "Brightness" },
+      "voc": { "name": "VOC" }
+    }
+  }
+}

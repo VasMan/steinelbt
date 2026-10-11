@@ -14,13 +14,14 @@
       },
       "reauth_confirm": {
         "title": "Steinel password",
-        "description": "The device rejected a command. Enter the password that was set in the Smart Remote app.",
+        "description": "The device wants a login for the last command. Enter the password that was set in the Smart Remote app. Both levels are tried.",
         "data": { "password": "Password", "auth_level": "Log in as" }
       }
     },
     "error": {
       "cannot_connect": "Could not connect. Make sure the device is in range and the Smart Remote app is not connected to it.",
-      "invalid_auth": "The device rejected the password."
+      "invalid_auth": "The device rejected the password at both levels ({detail}).",
+      "command_failed": "The device answered but refused a command: {detail}."
     },
     "abort": {
       "already_configured": "Device is already configured.",

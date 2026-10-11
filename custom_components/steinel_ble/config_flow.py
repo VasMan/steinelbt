@@ -56,6 +56,7 @@ class SteinelConfigFlow(ConfigFlow, domain=DOMAIN):
     def __init__(self) -> None:
         self._discovered: dict[str, BluetoothServiceInfoBleak] = {}
         self._info: BluetoothServiceInfoBleak | None = None
+        self._detail = ""
 
     @staticmethod
     @callback
@@ -104,7 +105,7 @@ class SteinelConfigFlow(ConfigFlow, domain=DOMAIN):
             step_id="auth",
             data_schema=AUTH_SCHEMA,
             errors=errors,
-            description_placeholders={"name": _title(self._info)},
+            description_placeholders={"name": _title(self._info), "detail": self._detail},
         )
 
     async def async_step_reauth(self, entry_data: Mapping[str, Any]) -> ConfigFlowResult:
@@ -122,7 +123,12 @@ class SteinelConfigFlow(ConfigFlow, domain=DOMAIN):
             if not (error := await self._async_try(data)):
                 return self.async_update_reload_and_abort(entry, data=data)
             errors["base"] = error
-        return self.async_show_form(step_id="reauth_confirm", data_schema=AUTH_SCHEMA, errors=errors)
+        return self.async_show_form(
+            step_id="reauth_confirm",
+            data_schema=AUTH_SCHEMA,
+            errors=errors,
+            description_placeholders={"detail": self._detail},
+        )
 
     async def _async_try(self, data: dict[str, Any]) -> str | None:
         """Connect once; with a password also check that the device accepts it."""
@@ -130,14 +136,31 @@ class SteinelConfigFlow(ConfigFlow, domain=DOMAIN):
         if device is None:
             return "cannot_connect"
         client: SteinelClient | None = None
+        self._detail = ""
         try:
             bleak_client = await establish_connection(BleakClientWithServiceCache, device, data[CONF_ADDRESS])
             client = SteinelClient(bleak_client, data[CONF_PASSWORD], data[CONF_AUTH_LEVEL])
             await client.start()
             if data[CONF_PASSWORD]:
-                await client.login()
-        except p.CommandError:
-            return "invalid_auth"
+                # The password may belong to the other level; try the chosen one first.
+                levels = [data[CONF_AUTH_LEVEL]] + [int(v) for v in LEVELS.values() if v != data[CONF_AUTH_LEVEL]]
+                failure: p.CommandError | None = None
+                for level in levels:
+                    try:
+                        await client.login(level, data[CONF_PASSWORD])
+                    except p.CommandError as err:
+                        _LOGGER.warning("Login at level %s rejected: %s", level, err)
+                        failure = failure or err
+                        continue
+                    data[CONF_AUTH_LEVEL] = level
+                    failure = None
+                    break
+                if failure:
+                    raise failure
+        except p.CommandError as err:
+            _LOGGER.warning("Steinel device %s refused the connection test: %s", data[CONF_ADDRESS], err)
+            self._detail = str(err)
+            return "invalid_auth" if err.command == p.Cmd.LOGIN else "command_failed"
         except (BleakError, TimeoutError, p.ProtocolError) as err:
             _LOGGER.debug("Connection test failed: %s", err)
             return "cannot_connect"

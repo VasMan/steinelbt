@@ -89,14 +89,33 @@ class SteinelClient:
         raise TimeoutError(f"no response to command 0x{command:02x}") from last
 
     async def _request(self, command: int, payload: bytes = b"") -> p.Response:
-        """Send a command; log in and retry once if the device asks for authorisation."""
+        """Send a command; if the device asks for authorisation, log in and repeat it.
+
+        The configured level is tried first, then the other one, because the user cannot know
+        which level a command needs. Without a password an empty one is sent.
+        """
         async with self._lock:
             response = await self._exchange(command, payload)
-            if response.status == p.Status.INVALID_AUTHORISATION and self._password is not None:
-                login = await self._exchange(p.Cmd.LOGIN, p.login_payload(self._auth_level, self._password))
-                login.raise_for_status()
+            if response.status != p.Status.INVALID_AUTHORISATION or command == p.Cmd.LOGIN:
+                return response.raise_for_status()
+            notes = []
+            levels = [self._auth_level] + [int(lv) for lv in (p.AuthLevel.ENDUSER, p.AuthLevel.INSTALLER)
+                                           if lv != self._auth_level]
+            for level in levels:
+                name = p.AuthLevel(level).name.lower()
+                login = await self._exchange(p.Cmd.LOGIN, p.login_payload(level, self._password))
+                if login.status != p.Status.OK:
+                    notes.append(f"login as {name}: {p.status_name(login.status)}")
+                    continue
                 response = await self._exchange(command, payload)
-            return response.raise_for_status()
+                if response.status != p.Status.INVALID_AUTHORISATION:
+                    self._auth_level = level
+                    return response.raise_for_status()
+                notes.append(f"login as {name} accepted but the command was still refused")
+            if self._password is None:
+                notes.append("no password configured")
+            _LOGGER.warning("Command 0x%02x needs a login that failed: %s", command, "; ".join(notes))
+            raise p.AuthorisationError(command, response.status, "; ".join(notes))
 
     # ------------------------------------------------------------ commands
 

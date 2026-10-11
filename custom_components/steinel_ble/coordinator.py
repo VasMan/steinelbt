@@ -129,7 +129,8 @@ class SteinelCoordinator(DataUpdateCoordinator[SteinelData]):
             client = await self._ensure_client()
             return await func(client)
         except p.AuthorisationError as err:
-            raise ConfigEntryAuthFailed("The device rejected the password") from err
+            self.config_entry.async_start_reauth(self.hass)
+            raise ConfigEntryAuthFailed(f"The device wants a login for this: {err}") from err
         except (BleakError, TimeoutError, p.CommandError, p.ProtocolError) as err:
             await self.async_disconnect()
             raise HomeAssistantError(f"Steinel command failed: {err}") from err

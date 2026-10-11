@@ -119,6 +119,13 @@ class Live(IntEnum):
     PRESENCE_DIRECTION = 156
 
 
+def status_name(status: int) -> str:
+    try:
+        return Status(status).name
+    except ValueError:
+        return f"status {status}"
+
+
 class ProtocolError(Exception):
     """Malformed data from the device."""
 
@@ -126,14 +133,12 @@ class ProtocolError(Exception):
 class CommandError(Exception):
     """The device answered with a non-OK status."""
 
-    def __init__(self, command: int, status: int) -> None:
+    def __init__(self, command: int, status: int, detail: str = "") -> None:
         self.command = command
         self.status = status
-        try:
-            name = Status(status).name
-        except ValueError:
-            name = str(status)
-        super().__init__(f"command 0x{command:02x} failed: {name}")
+        self.detail = detail
+        message = f"command 0x{command:02x} failed: {status_name(status)}"
+        super().__init__(f"{message} ({detail})" if detail else message)
 
 
 class AuthorisationError(CommandError):
@@ -299,7 +304,7 @@ class Advertisement:
 
 
 def login_payload(level: int, password: str | None) -> bytes:
-    pw = (password or "").encode("ascii", "ignore")[:MAX_PASSWORD_LEN]
+    pw = (password or "").encode("ascii", "replace")[:MAX_PASSWORD_LEN]
     return bytes([level, len(pw)]) + pw
 
 
